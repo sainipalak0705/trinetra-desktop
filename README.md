@@ -1,1 +1,1 @@
-# trinetra-desktop
+# trinetra-webapplication
