@@ -31,3 +31,6 @@ dist-ssr
 
 # Tauri build artifacts
 src-tauri/target/
+
+# TypeScript build cache
+*.tsbuildinfo
