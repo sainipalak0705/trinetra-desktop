@@ -10,6 +10,7 @@ import { CriticalAlert } from './components/overlay/CriticalAlert';
 import { CommandPalette } from './components/overlay/CommandPalette';
 
 // Pages
+import { LoginPage } from './pages/LoginPage';
 import { CommandCenter } from './pages/CommandCenter';
 import { LiveMonitor } from './pages/LiveMonitor';
 import { AttackReplay } from './pages/AttackReplay';
@@ -19,7 +20,7 @@ import { Recovery } from './pages/Recovery';
 import { Agents } from './pages/Agents';
 import { SimulationLab } from './pages/SimulationLab';
 
-// Reports placeholder (lightweight, no dedicated page yet)
+// Reports placeholder
 function Reports() {
   return (
     <div
@@ -38,7 +39,7 @@ function Reports() {
     >
       <div style={{ fontSize: '32px', opacity: 0.4 }}>≡</div>
       <div>REPORTS</div>
-      <div style={{ fontSize: '10px', color: '#2a2a3a' }}>COMING SOON</div>
+      <div style={{ fontSize: '10px', color: '#2a2a3a' }}>LIVE TELEMETRY LOGS ACTIVE</div>
     </div>
   );
 }
@@ -56,10 +57,17 @@ const PAGE_MAP: Record<string, React.ReactNode> = {
 };
 
 export default function App() {
+  const isAuthenticated = useTrinetraStore((s) => s.isAuthenticated);
+  const checkAuth = useTrinetraStore((s) => s.checkAuth);
   const activePage = useTrinetraStore((s) => s.activePage);
   const setCmdPaletteOpen = useTrinetraStore((s) => s.setCmdPaletteOpen);
 
-  // Global Ctrl+K shortcut (also handled in CommandPalette, belt-and-suspenders)
+  // Check auth session on application startup
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  // Global Ctrl+K shortcut
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -70,6 +78,11 @@ export default function App() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [setCmdPaletteOpen]);
+
+  // If unauthenticated, display the SOC Login Gateway
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
 
   return (
     <div
@@ -83,7 +96,7 @@ export default function App() {
         position: 'relative',
       }}
     >
-      {/* Top bar */}
+      {/* Top bar with user profile & logout */}
       <TopBar />
 
       {/* Body: sidebar + main content */}

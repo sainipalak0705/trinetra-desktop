@@ -20,6 +20,8 @@ export function TopBar() {
   const setActivePage = useTrinetraStore((s) => s.setActivePage);
   const agents = useTrinetraStore((s) => s.agents);
   const simulationPhase = useTrinetraStore((s) => s.simulationPhase);
+  const user = useTrinetraStore((s) => s.user);
+  const logout = useTrinetraStore((s) => s.logout);
 
   const activeAgentCount = Object.values(agents).filter(
     (a) => a.state !== 'idle'
@@ -42,7 +44,7 @@ export function TopBar() {
         display: 'flex',
         alignItems: 'center',
         padding: '0 16px',
-        gap: '16px',
+        gap: '12px',
         flexShrink: 0,
       }}
     >
@@ -148,7 +150,7 @@ export function TopBar() {
           background: 'rgba(255,255,255,0.03)',
           border: '1px solid #1a1a2e',
           color: '#3a3a5a',
-          padding: '3px 10px',
+          padding: '3px 8px',
           fontSize: '9px',
           fontFamily: 'JetBrains Mono, monospace',
           cursor: 'pointer',
@@ -195,6 +197,57 @@ export function TopBar() {
       >
         ⚗ SIM LAB
       </button>
+
+      {/* User Profile & Logout */}
+      {user && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '4px' }}>
+          <div
+            style={{
+              padding: '2px 8px',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid #1a1a2e',
+              fontFamily: 'JetBrains Mono, monospace',
+              fontSize: '9px',
+              color: '#8a8a9a',
+              letterSpacing: '0.08em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+            className="hide-mobile"
+          >
+            <span style={{ color: '#00ff88' }}>●</span>
+            <span>{user.username}</span>
+            <span style={{ color: user.role === 'admin' ? '#ff0040' : '#00aaff', fontSize: '8px' }}>
+              [{user.role.toUpperCase()}]
+            </span>
+          </div>
+
+          <button
+            onClick={() => logout()}
+            title="Sign out of SOC"
+            style={{
+              background: 'rgba(255,0,64,0.06)',
+              border: '1px solid rgba(255,0,64,0.2)',
+              color: '#ff4d6d',
+              padding: '3px 8px',
+              fontSize: '9px',
+              fontFamily: 'JetBrains Mono, monospace',
+              cursor: 'pointer',
+              letterSpacing: '0.1em',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              (e.target as HTMLButtonElement).style.background = 'rgba(255,0,64,0.2)';
+            }}
+            onMouseLeave={(e) => {
+              (e.target as HTMLButtonElement).style.background = 'rgba(255,0,64,0.06)';
+            }}
+          >
+            LOGOUT
+          </button>
+        </div>
+      )}
     </header>
   );
 }

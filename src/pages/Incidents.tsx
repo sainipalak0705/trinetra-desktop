@@ -69,7 +69,14 @@ export function Incidents() {
                   onClick={() => setSelected(inc)}
                 >
                   <td style={{ fontFamily: 'JetBrains Mono, monospace', color: '#ff0040', fontWeight: 600 }}>{inc.id}</td>
-                  <td style={{ color: '#c8c8d8' }}>{inc.threat}</td>
+                  <td style={{ color: '#c8c8d8' }}>
+                    {inc.isReal ? (
+                      <span style={{ fontSize: '8px', color: '#00ff88', border: '1px solid rgba(0,255,136,0.3)', padding: '1px 4px', marginRight: '6px', fontFamily: 'JetBrains Mono, monospace' }}>LIVE</span>
+                    ) : (
+                      <span style={{ fontSize: '8px', color: '#7a7a9a', border: '1px solid #2a2a3a', padding: '1px 4px', marginRight: '6px', fontFamily: 'JetBrains Mono, monospace' }}>SCENARIO</span>
+                    )}
+                    {inc.threat}
+                  </td>
                   <td>
                     <span style={{
                       background: `${SEVERITY_COLORS[inc.severity]}15`,

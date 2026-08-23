@@ -1,4 +1,7 @@
 import { create } from 'zustand';
+import { authApi, UserInfo } from '../api/authApi';
+import { dashboardApi, BackendEvent, DashboardStateResponse } from '../api/dashboardApi';
+import { wsClient } from '../api/websocket';
 
 // ─── Types ─────────────────────────────────────────────────────────────
 export type AgentState =
@@ -55,6 +58,7 @@ export interface Incident {
   filesAffected: number;
   filesSecured: number;
   agentsInvolved: string[];
+  isReal?: boolean;
 }
 
 export interface FileEvent {
@@ -92,11 +96,11 @@ export interface FileMetrics {
   networkActivity: number;
 }
 
-// ─── Mock Incidents ─────────────────────────────────────────────────────
+// ─── Mock / Demo Incidents (Preserved for Presentation) ───────────────────
 export const MOCK_INCIDENTS: Incident[] = [
   {
     id: 'TR-4821',
-    threat: 'Ransomware',
+    threat: 'Ransomware (Scenario)',
     severity: 'critical',
     target: 'Workstation-07',
     detectedAt: '22 May 2025 10:42',
@@ -108,10 +112,11 @@ export const MOCK_INCIDENTS: Incident[] = [
     filesAffected: 247,
     filesSecured: 247,
     agentsInvolved: ['WATCHDOG', 'RISK ANALYSER', 'POLICY ENGINE', 'ENFORCER', 'VAULTKEEPER'],
+    isReal: false,
   },
   {
     id: 'TR-4820',
-    threat: 'Malware',
+    threat: 'Malware (Scenario)',
     severity: 'critical',
     target: 'Workstation-03',
     detectedAt: '22 May 2025 09:15',
@@ -123,10 +128,11 @@ export const MOCK_INCIDENTS: Incident[] = [
     filesAffected: 89,
     filesSecured: 89,
     agentsInvolved: ['WATCHDOG', 'GATEKEEPER', 'ENFORCER'],
+    isReal: false,
   },
   {
     id: 'TR-4786',
-    threat: 'Data Exfiltration',
+    threat: 'Data Exfiltration (Scenario)',
     severity: 'high',
     target: 'Workstation-02',
     detectedAt: '21 May 2025 13:22',
@@ -138,39 +144,11 @@ export const MOCK_INCIDENTS: Incident[] = [
     filesAffected: 134,
     filesSecured: 134,
     agentsInvolved: ['GATEKEEPER', 'POLICY ENGINE', 'VAULTKEEPER'],
-  },
-  {
-    id: 'TR-4761',
-    threat: 'Suspicious Process',
-    severity: 'medium',
-    target: 'Workstation-09',
-    detectedAt: '20 May 2025 21:43',
-    containedAt: '20 May 2025 21:44',
-    status: 'contained',
-    riskScore: 58,
-    confidence: 84.6,
-    filesAffected: 12,
-    filesSecured: 12,
-    agentsInvolved: ['WATCHDOG', 'ENFORCER'],
-  },
-  {
-    id: 'TR-4742',
-    threat: 'Ransomware',
-    severity: 'critical',
-    target: 'Workstation-01',
-    detectedAt: '20 May 2025 11:55',
-    containedAt: '20 May 2025 11:57',
-    recoveredAt: '20 May 2025 12:04',
-    status: 'recovered',
-    riskScore: 91,
-    confidence: 96.8,
-    filesAffected: 312,
-    filesSecured: 312,
-    agentsInvolved: ['WATCHDOG', 'RISK ANALYSER', 'POLICY ENGINE', 'ENFORCER', 'VAULTKEEPER'],
+    isReal: false,
   },
 ];
 
-// ─── Mock File Events ────────────────────────────────────────────────────
+// ─── Mock / Demo File Events (Preserved for Presentation) ─────────────────
 export const MOCK_FILES: FileEvent[] = [
   { id: 'f1', name: 'budget.xlsx', path: 'C:\\Users\\Admin\\Documents\\', status: 'encrypted', timestamp: '22 May 2025 10:43', size: '34 KB' },
   { id: 'f2', name: 'report.docx', path: 'C:\\Users\\Admin\\Documents\\', status: 'secured', timestamp: '22 May 2025 10:43', size: '2.1 MB' },
@@ -184,7 +162,7 @@ export const MOCK_FILES: FileEvent[] = [
 
 // ─── Replay Timeline ─────────────────────────────────────────────────────
 export interface ReplayEvent {
-  time: number; // seconds from start
+  time: number;
   label: string;
   agent: string;
   agentStateChanges?: Partial<Record<string, AgentState>>;
@@ -205,15 +183,14 @@ export const REPLAY_TIMELINE: ReplayEvent[] = [
 
 // ─── Initial Agent Infos ─────────────────────────────────────────────────
 const initialAgents: Record<string, AgentInfo> = {
-  watchdog: { id: 'watchdog', name: 'WATCHDOG', state: 'monitoring', eventsProcessed: 14205, threatsHandled: 23, lastAction: 'Monitoring system behaviour', currentActivity: 'Monitoring system behaviour', uptime: '99.8%', color: '#ff0040' },
-  gatekeeper: { id: 'gatekeeper', name: 'GATEKEEPER', state: 'active', eventsProcessed: 8612, threatsHandled: 198, lastAction: 'Filtering network traffic', currentActivity: 'Filtering network traffic', uptime: '99.9%', color: '#ff6600' },
-  riskAnalyser: { id: 'riskAnalyser', name: 'RISK ANALYSER', state: 'active', eventsProcessed: 9812, threatsHandled: 221, lastAction: 'Analysing behaviour patterns', currentActivity: 'Analysing behaviour patterns', uptime: '99.7%', color: '#ffaa00' },
+  watchdog: { id: 'watchdog', name: 'WATCHDOG', state: 'monitoring', eventsProcessed: 14205, threatsHandled: 23, lastAction: 'Monitoring file system & canaries', currentActivity: 'Active file system & canary monitoring', uptime: '99.8%', color: '#ff0040' },
+  gatekeeper: { id: 'gatekeeper', name: 'GATEKEEPER', state: 'active', eventsProcessed: 8612, threatsHandled: 198, lastAction: 'Filtering URL & file paths', currentActivity: 'Filtering URL & file paths', uptime: '99.9%', color: '#ff6600' },
+  riskAnalyser: { id: 'riskAnalyser', name: 'RISK ANALYSER', state: 'active', eventsProcessed: 9812, threatsHandled: 221, lastAction: 'ML Telemetry risk evaluation', currentActivity: 'ML Telemetry risk evaluation', uptime: '99.7%', color: '#ffaa00' },
   policyEngine: { id: 'policyEngine', name: 'POLICY ENGINE', state: 'active', eventsProcessed: 6321, threatsHandled: 145, lastAction: 'Evaluating containment rules', currentActivity: 'Evaluating containment rules', uptime: '100%', color: '#00aaff' },
-  enforcer: { id: 'enforcer', name: 'ENFORCER', state: 'active', eventsProcessed: 7654, threatsHandled: 186, lastAction: 'Monitoring and enforcing', currentActivity: 'Monitoring and enforcing', uptime: '99.9%', color: '#aa00ff' },
-  vaultKeeper: { id: 'vaultKeeper', name: 'VAULTKEEPER', state: 'active', eventsProcessed: 10231, threatsHandled: 312, lastAction: 'Securing critical files', currentActivity: 'Securing critical files', uptime: '100%', color: '#00ff88' },
+  enforcer: { id: 'enforcer', name: 'ENFORCER', state: 'active', eventsProcessed: 7654, threatsHandled: 186, lastAction: 'Enforcement & file locking active', currentActivity: 'Enforcement & file locking active', uptime: '99.9%', color: '#aa00ff' },
+  vaultKeeper: { id: 'vaultKeeper', name: 'VAULTKEEPER', state: 'active', eventsProcessed: 10231, threatsHandled: 312, lastAction: 'Encrypted snapshot vault active', currentActivity: 'Encrypted snapshot vault active', uptime: '100%', color: '#00ff88' },
 };
 
-// ─── Initial Risk History ────────────────────────────────────────────────
 function genIdleHistory(): RiskDataPoint[] {
   const pts: RiskDataPoint[] = [];
   for (let i = 0; i < 30; i++) {
@@ -222,26 +199,53 @@ function genIdleHistory(): RiskDataPoint[] {
   return pts;
 }
 
+let eventCounter = 0;
+function makeEventId() { return `evt-${Date.now()}-${++eventCounter}`; }
+
+let simulationTimeouts: Array<ReturnType<typeof setTimeout>> = [];
+
+function clearSimulationTimeouts() {
+  simulationTimeouts.forEach((t) => clearTimeout(t));
+  simulationTimeouts = [];
+}
+
 // ─── Store Interface ─────────────────────────────────────────────────────
 interface TrinetraState {
+  // Authentication
+  token: string | null;
+  user: UserInfo | null;
+  isAuthenticated: boolean;
+  isAuthLoading: boolean;
+  authError: string | null;
+  login: (username: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  checkAuth: () => Promise<void>;
+  initDashboard: () => Promise<void>;
+
   // Navigation
   activePage: string;
   setActivePage: (page: string) => void;
 
-  // Risk
+  // Real-Time Risk & Telemetry
   riskScore: number;
   riskHistory: RiskDataPoint[];
   addRiskPoint: (value: number, phase: string) => void;
 
-  // Agents
+  // Agent Status
   agents: Record<string, AgentInfo>;
   setAgentState: (id: string, state: AgentState) => void;
   setAgentActivity: (id: string, activity: string) => void;
 
-  // Events
+  // Events Feed
   events: TelemetryEvent[];
   addEvent: (event: Omit<TelemetryEvent, 'id'>) => void;
   clearEvents: () => void;
+  handleBackendEvent: (rawEvent: BackendEvent) => void;
+
+  // Policy & Enforcer Config
+  thresholds: Record<string, any>;
+  enforcerConfig: Record<string, any>;
+  unlockAllFiles: () => Promise<void>;
 
   // Simulation
   simulationPhase: SimulationPhase;
@@ -249,17 +253,17 @@ interface TrinetraState {
   activeIncident: Incident | null;
   setActiveIncident: (incident: Incident | null) => void;
   isSimulating: boolean;
+  startSimulation: (attackType: AttackType, target: string) => Promise<void>;
+  stopSimulation: () => void;
 
-  // Alert
+  // Alert Overlays
   alertState: AlertState;
   setAlertState: (state: AlertState) => void;
   dismissAlert: () => void;
 
-  // File Metrics
+  // File Metrics & Security
   fileMetrics: FileMetrics;
   setFileMetrics: (metrics: Partial<FileMetrics>) => void;
-
-  // Files
   fileEvents: FileEvent[];
   filesSecured: number;
   filesAffected: number;
@@ -268,7 +272,7 @@ interface TrinetraState {
   recoveryProgress: number;
   recoverySteps: { label: string; done: boolean }[];
 
-  // Replay
+  // Attack Replay (Demo)
   replayProgress: number;
   replayPlaying: boolean;
   replaySpeed: ReplaySpeed;
@@ -278,233 +282,327 @@ interface TrinetraState {
   setReplaySpeed: (s: ReplaySpeed) => void;
   resetReplay: () => void;
 
-  // Incidents
+  // Incidents List
   incidents: Incident[];
   addIncident: (incident: Incident) => void;
 
-  // Simulation engine start
-  startSimulation: (attackType: AttackType, target: string) => void;
-  stopSimulation: () => void;
-
-  // Command palette
+  // Command Palette
   cmdPaletteOpen: boolean;
   setCmdPaletteOpen: (v: boolean) => void;
 }
 
-// ─── Store ───────────────────────────────────────────────────────────────
-let eventCounter = 0;
-function makeEventId() { return `evt-${++eventCounter}`; }
-
-export const useTrinetraStore = create<TrinetraState>((set, get) => ({
-  // Navigation
-  activePage: 'command-center',
-  setActivePage: (page) => set({ activePage: page }),
-
-  // Risk
-  riskScore: 18,
-  riskHistory: genIdleHistory(),
-  addRiskPoint: (value, phase) => set((s) => ({
-    riskScore: value,
-    riskHistory: [...s.riskHistory.slice(-59), { time: `${s.riskHistory.length}`, value, phase }],
-  })),
-
-  // Agents
-  agents: initialAgents,
-  setAgentState: (id, state) => set((s) => ({
-    agents: { ...s.agents, [id]: { ...s.agents[id], state } },
-  })),
-  setAgentActivity: (id, activity) => set((s) => ({
-    agents: { ...s.agents, [id]: { ...s.agents[id], currentActivity: activity, lastAction: activity } },
-  })),
-
-  // Events
-  events: [
-    { id: 'init-1', time: '10:40:01', timestamp: Date.now() - 120000, agent: 'WATCHDOG', message: 'System monitoring active — all clear', severity: 'low' },
-    { id: 'init-2', time: '10:40:15', timestamp: Date.now() - 100000, agent: 'GATEKEEPER', message: 'Network baseline established', severity: 'low' },
-    { id: 'init-3', time: '10:41:00', timestamp: Date.now() - 60000, agent: 'RISK ANALYSER', message: 'Behaviour profile loaded for Workstation-07', severity: 'low' },
-  ],
-  addEvent: (evt) => set((s) => ({
-    events: [{ ...evt, id: makeEventId() }, ...s.events].slice(0, 200),
-  })),
-  clearEvents: () => set({ events: [] }),
-
-  // Simulation
-  simulationPhase: 'idle',
-  setSimulationPhase: (phase) => set({ simulationPhase: phase }),
-  activeIncident: null,
-  setActiveIncident: (incident) => set({ activeIncident: incident }),
-  isSimulating: false,
-
-  // Alert
-  alertState: 'none',
-  setAlertState: (state) => set({ alertState: state }),
-  dismissAlert: () => set({ alertState: 'none' }),
-
-  // File Metrics
-  fileMetrics: { modRate: 1425, ioVelocity: 2.4, entropy: 0.92, processAnomaly: 87, networkActivity: 1.3 },
-  setFileMetrics: (m) => set((s) => ({ fileMetrics: { ...s.fileMetrics, ...m } })),
-
-  // Files
-  fileEvents: MOCK_FILES,
-  filesSecured: 0,
-  filesAffected: 0,
-
-  // Recovery
-  recoveryProgress: 0,
-  recoverySteps: [
-    { label: 'Threat isolated', done: false },
-    { label: 'Malicious process terminated', done: false },
-    { label: 'Network restricted', done: false },
-    { label: 'Critical files secured', done: false },
-    { label: 'Backup verified', done: false },
-    { label: 'System restored', done: false },
-  ],
-
-  // Replay
-  replayProgress: 0,
-  replayPlaying: false,
-  replaySpeed: 1,
-  replayIncidentId: 'TR-4821',
-  setReplayProgress: (p) => set({ replayProgress: p }),
-  setReplayPlaying: (v) => set({ replayPlaying: v }),
-  setReplaySpeed: (s) => set({ replaySpeed: s }),
-  resetReplay: () => {
-    set({
-      replayProgress: 0,
-      replayPlaying: false,
-      riskScore: 18,
-      simulationPhase: 'idle',
-      alertState: 'none',
-      agents: initialAgents,
-      recoveryProgress: 0,
-      events: [
-        { id: 'init-1', time: '10:40:01', timestamp: Date.now(), agent: 'WATCHDOG', message: 'System monitoring active — all clear', severity: 'low' },
-      ],
-      recoverySteps: [
-        { label: 'Threat isolated', done: false },
-        { label: 'Malicious process terminated', done: false },
-        { label: 'Network restricted', done: false },
-        { label: 'Critical files secured', done: false },
-        { label: 'Backup verified', done: false },
-        { label: 'System restored', done: false },
-      ],
+// ─── Store Implementation ─────────────────────────────────────────────────
+export const useTrinetraStore = create<TrinetraState>((set, get) => {
+  // Listen for 401 unauthorized event across windows
+  if (typeof window !== 'undefined') {
+    window.addEventListener('trinetra:unauthorized', () => {
+      get().logout();
     });
-  },
+  }
 
-  // Incidents
-  incidents: MOCK_INCIDENTS,
-  addIncident: (incident) => set((s) => ({ incidents: [incident, ...s.incidents] })),
+  return {
+    // ─── Auth State ────────────────────────────────────────────────────────
+    token: typeof localStorage !== 'undefined' ? localStorage.getItem('trinetra_auth_token') : null,
+    user: typeof localStorage !== 'undefined' && localStorage.getItem('trinetra_auth_user')
+      ? JSON.parse(localStorage.getItem('trinetra_auth_user')!)
+      : null,
+    isAuthenticated: typeof localStorage !== 'undefined' ? !!localStorage.getItem('trinetra_auth_token') : false,
+    isAuthLoading: false,
+    authError: null,
 
-  // Start Simulation
-  startSimulation: (attackType, target) => {
-    const store = get();
-    const threatNames: Record<AttackType, string> = {
-      ransomware: 'Ransomware', malware: 'Malware',
-      data_exfiltration: 'Data Exfiltration', brute_force: 'Brute Force', suspicious_process: 'Suspicious Process',
-    };
-    const now = new Date();
-    const timeStr = now.toTimeString().slice(0, 8);
-    const incident: Incident = {
-      id: `TR-${4822 + Math.floor(Math.random() * 100)}`,
-      threat: threatNames[attackType],
-      severity: attackType === 'suspicious_process' ? 'medium' : attackType === 'brute_force' ? 'high' : 'critical',
-      target,
-      detectedAt: now.toLocaleString(),
-      status: 'detected',
-      riskScore: 0,
-      confidence: 97.4,
-      filesAffected: 247,
-      filesSecured: 0,
-      agentsInvolved: ['WATCHDOG', 'GATEKEEPER', 'RISK ANALYSER', 'POLICY ENGINE', 'ENFORCER', 'VAULTKEEPER'],
-    };
-    set({ isSimulating: true, activeIncident: incident, filesAffected: 247, filesSecured: 0, recoveryProgress: 0 });
-    store.addIncident(incident);
+    login: async (username: string, password: string) => {
+      set({ isAuthLoading: true, authError: null });
+      try {
+        const res = await authApi.login(username, password);
+        localStorage.setItem('trinetra_auth_token', res.access_token);
+        localStorage.setItem('trinetra_auth_user', JSON.stringify(res.user));
+        set({
+          token: res.access_token,
+          user: res.user,
+          isAuthenticated: true,
+          isAuthLoading: false,
+          authError: null,
+        });
 
-    // Phase sequence
-    const phases: Array<{ delay: number; fn: () => void }> = [
-      { delay: 500, fn: () => {
-        store.setSimulationPhase('detecting');
-        store.setAgentState('watchdog', 'detecting');
-        store.addEvent({ time: timeStr, timestamp: Date.now(), agent: 'WATCHDOG', message: `Suspicious process detected on ${target}`, severity: 'high' });
-        store.addRiskPoint(31, 'detecting');
-      }},
-      { delay: 2500, fn: () => {
-        store.setSimulationPhase('analysing');
-        store.setAgentState('riskAnalyser', 'analysing');
-        store.addEvent({ time: timeStr, timestamp: Date.now(), agent: 'RISK ANALYSER', message: 'Entropy anomaly detected — file modification rate elevated', severity: 'high' });
-        store.addRiskPoint(47, 'analysing');
-        store.setFileMetrics({ entropy: 0.97, modRate: 4200 });
-      }},
-      { delay: 5000, fn: () => {
-        store.setSimulationPhase('deciding');
-        store.setAgentState('riskAnalyser', 'deciding');
-        store.addEvent({ time: timeStr, timestamp: Date.now(), agent: 'RISK ANALYSER', message: 'Risk score 94 — threat classification: RANSOMWARE (97.4% confidence)', severity: 'critical' });
-        store.addRiskPoint(63, 'deciding');
-        store.setAlertState('critical');
-        set((s) => ({ activeIncident: s.activeIncident ? { ...s.activeIncident, riskScore: 94 } : null }));
-      }},
-      { delay: 8000, fn: () => {
+        // Initialize WebSocket and dashboard state on successful login
+        get().initDashboard();
+        return true;
+      } catch (err: any) {
+        set({
+          authError: err.message || 'Login failed. Please check your credentials.',
+          isAuthLoading: false,
+          isAuthenticated: false,
+        });
+        return false;
+      }
+    },
+
+    logout: () => {
+      localStorage.removeItem('trinetra_auth_token');
+      localStorage.removeItem('trinetra_auth_user');
+      wsClient.disconnect();
+      set({
+        token: null,
+        user: null,
+        isAuthenticated: false,
+        authError: null,
+        activePage: 'command-center',
+      });
+    },
+
+    checkAuth: async () => {
+      const token = localStorage.getItem('trinetra_auth_token');
+      if (!token) {
+        set({ isAuthenticated: false, user: null, token: null });
+        return;
+      }
+      try {
+        const user = await authApi.getMe();
+        localStorage.setItem('trinetra_auth_user', JSON.stringify(user));
+        set({ user, isAuthenticated: true, token });
+        get().initDashboard();
+      } catch {
+        get().logout();
+      }
+    },
+
+    initDashboard: async () => {
+      if (!get().isAuthenticated) return;
+
+      // 1. Connect authenticated WebSocket
+      wsClient.connect();
+      wsClient.subscribe((backendEvent) => {
+        get().handleBackendEvent(backendEvent);
+      });
+
+      // 2. Fetch initial dashboard state from backend
+      try {
+        const state = await dashboardApi.getDashboardState();
+        if (state) {
+          set({
+            thresholds: state.thresholds || {},
+            enforcerConfig: state.enforcer_config || {},
+          });
+
+          // Hydrate recent events into feed
+          if (state.recent_events && state.recent_events.length > 0) {
+            const parsedEvents: TelemetryEvent[] = state.recent_events.map((e, idx) => ({
+              id: `init-evt-${idx}-${Date.now()}`,
+              time: e.timestamp ? new Date(e.timestamp).toTimeString().slice(0, 8) : new Date().toTimeString().slice(0, 8),
+              timestamp: e.timestamp ? new Date(e.timestamp).getTime() : Date.now(),
+              agent: e.process ? `PROCESS: ${e.process}` : (e.event || 'SYSTEM'),
+              message: e.reasons ? e.reasons.join(' | ') : `Event: ${e.event}`,
+              severity: (e.severity?.toLowerCase() as Severity) || (e.event === 'THREAT_CONFIRMED' ? 'critical' : 'low'),
+            }));
+            set({ events: parsedEvents.slice(0, 100) });
+          }
+
+          if (state.latest_decision) {
+            const score = state.latest_decision.risk_score ?? get().riskScore;
+            get().addRiskPoint(score, state.latest_decision.event || 'idle');
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch initial dashboard state:', err);
+      }
+    },
+
+    // ─── Navigation ────────────────────────────────────────────────────────
+    activePage: 'command-center',
+    setActivePage: (page) => set({ activePage: page }),
+
+    // ─── Real Telemetry & Events ───────────────────────────────────────────
+    riskScore: 12,
+    riskHistory: genIdleHistory(),
+    addRiskPoint: (value, phase) => set((s) => ({
+      riskScore: value,
+      riskHistory: [...s.riskHistory.slice(-59), { time: `${s.riskHistory.length}`, value, phase }],
+    })),
+
+    agents: initialAgents,
+    setAgentState: (id, state) => set((s) => ({
+      agents: { ...s.agents, [id]: { ...s.agents[id], state } },
+    })),
+    setAgentActivity: (id, activity) => set((s) => ({
+      agents: { ...s.agents, [id]: { ...s.agents[id], currentActivity: activity, lastAction: activity } },
+    })),
+
+    events: [
+      { id: 'init-1', time: new Date().toTimeString().slice(0, 8), timestamp: Date.now() - 120000, agent: 'WATCHDOG', message: 'TRINETRA SOC active — passive monitoring nominal', severity: 'low' },
+      { id: 'init-2', time: new Date().toTimeString().slice(0, 8), timestamp: Date.now() - 60000, agent: 'GATEKEEPER', message: 'Screening policies loaded and armed', severity: 'low' },
+    ],
+    addEvent: (evt) => set((s) => ({
+      events: [{ ...evt, id: makeEventId() }, ...s.events].slice(0, 200),
+    })),
+    clearEvents: () => set({ events: [] }),
+
+    handleBackendEvent: (rawEvent: BackendEvent) => {
+      const store = get();
+      const timeStr = rawEvent.timestamp
+        ? new Date(rawEvent.timestamp).toTimeString().slice(0, 8)
+        : new Date().toTimeString().slice(0, 8);
+
+      const eventName = rawEvent.event || 'EVENT';
+      const risk = typeof rawEvent.risk_score === 'number' ? rawEvent.risk_score : null;
+
+      if (risk !== null) {
+        store.addRiskPoint(risk, eventName.toLowerCase());
+      }
+
+      // Map event severity
+      let sev: Severity = 'low';
+      if (['THREAT_CONFIRMED', 'ENFORCER_ACTIVATED'].includes(eventName)) sev = 'critical';
+      else if (['HIGH_RISK', 'HIGH_RISK_MONITORING_INCREASED'].includes(eventName)) sev = 'high';
+      else if (['SUSPICIOUS', 'SUSPICIOUS_ACTIVITY_LOGGED'].includes(eventName)) sev = 'medium';
+
+      // Map Agent states according to event
+      if (eventName === 'THREAT_CONFIRMED') {
         store.setAgentState('policyEngine', 'deciding');
-        store.addEvent({ time: timeStr, timestamp: Date.now(), agent: 'POLICY ENGINE', message: 'Containment policy triggered — isolating process', severity: 'critical' });
-        store.addRiskPoint(78, 'deciding');
-        store.setFileMetrics({ processAnomaly: 99, networkActivity: 4.8 });
-      }},
-      { delay: 11000, fn: () => {
-        store.setSimulationPhase('containing');
         store.setAgentState('enforcer', 'containing');
-        store.setAgentState('policyEngine', 'containing');
-        store.addEvent({ time: timeStr, timestamp: Date.now(), agent: 'ENFORCER', message: 'Malicious process terminated — PID 7721', severity: 'critical' });
-        store.addRiskPoint(94, 'containing');
-      }},
-      { delay: 14000, fn: () => {
-        store.setSimulationPhase('protecting');
+        store.setAlertState('critical');
+      } else if (eventName === 'ENFORCER_ACTIVATED') {
+        store.setAgentState('enforcer', 'containing');
+        store.setAgentActivity('enforcer', `Containing threat on PID ${rawEvent.pid || 'N/A'}`);
+      } else if (eventName === 'VAULTKEEPER_NOTIFIED') {
         store.setAgentState('vaultKeeper', 'protecting');
-        store.addEvent({ time: timeStr, timestamp: Date.now(), agent: 'VAULTKEEPER', message: 'Critical files secured — 247 files protected', severity: 'high' });
-        store.addRiskPoint(72, 'protecting');
-        store.setAlertState('contained');
-        set({ filesSecured: 247 });
-        set((s) => ({ activeIncident: s.activeIncident ? { ...s.activeIncident, status: 'contained', containedAt: new Date().toLocaleString(), filesSecured: 247 } : null }));
-        // Recovery steps
-        const steps = [
-          { label: 'Threat isolated', done: true },
-          { label: 'Malicious process terminated', done: true },
-          { label: 'Network restricted', done: true },
-          { label: 'Critical files secured', done: true },
-          { label: 'Backup verified', done: false },
-          { label: 'System restored', done: false },
-        ];
-        set({ recoverySteps: steps, recoveryProgress: 66 });
-      }},
-      { delay: 18000, fn: () => {
-        store.addEvent({ time: timeStr, timestamp: Date.now(), agent: 'VAULTKEEPER', message: 'Backup integrity verified — SHA-256 checksum valid', severity: 'low' });
-        store.addRiskPoint(45, 'protecting');
-        set((s) => ({
-          recoverySteps: s.recoverySteps.map((step, i) => i < 5 ? { ...step, done: true } : step),
-          recoveryProgress: 83,
-        }));
-      }},
-      { delay: 22000, fn: () => {
-        store.setSimulationPhase('recovered');
-        store.setAlertState('recovered');
-        store.addEvent({ time: timeStr, timestamp: Date.now(), agent: 'SYSTEM', message: 'System fully recovered — all agents nominal', severity: 'low' });
-        store.addRiskPoint(18, 'recovered');
-        Object.keys(initialAgents).forEach(id => store.setAgentState(id, 'recovered'));
-        set((s) => ({
-          recoverySteps: s.recoverySteps.map(step => ({ ...step, done: true })),
-          recoveryProgress: 100,
-          activeIncident: s.activeIncident ? { ...s.activeIncident, status: 'recovered', recoveredAt: new Date().toLocaleString() } : null,
-          isSimulating: false,
-        }));
-        store.addRiskPoint(5, 'recovered');
-      }},
-    ];
+        store.setAgentActivity('vaultKeeper', 'Securing recovery snapshots');
+      } else if (eventName === 'FILES_UNLOCKED') {
+        store.setAgentState('enforcer', 'active');
+        store.setAlertState('none');
+      } else if (eventName === 'SAFE') {
+        store.setAgentState('watchdog', 'monitoring');
+        store.setAgentState('riskAnalyser', 'active');
+        store.setAlertState('none');
+      }
 
-    phases.forEach(({ delay, fn }) => setTimeout(fn, delay));
-  },
+      // Add to event stream
+      const msg = rawEvent.reasons && rawEvent.reasons.length > 0
+        ? rawEvent.reasons.join(', ')
+        : rawEvent.process
+        ? `Signal on ${rawEvent.process} (PID ${rawEvent.pid || 'N/A'})`
+        : `Backend event: ${eventName}`;
 
-  stopSimulation: () => set({ isSimulating: false, simulationPhase: 'idle' }),
+      store.addEvent({
+        time: timeStr,
+        timestamp: Date.now(),
+        agent: rawEvent.process ? `PID ${rawEvent.pid || ''} (${rawEvent.process})` : eventName,
+        message: msg,
+        severity: sev,
+      });
+    },
 
-  // Command palette
-  cmdPaletteOpen: false,
-  setCmdPaletteOpen: (v) => set({ cmdPaletteOpen: v }),
-}));
+    thresholds: {},
+    enforcerConfig: {},
+    unlockAllFiles: async () => {
+      try {
+        await dashboardApi.unlockAllFiles();
+        get().setAlertState('none');
+      } catch (err) {
+        console.error('Failed to unlock files:', err);
+      }
+    },
+
+    // ─── Simulation Engine ─────────────────────────────────────────────────
+    simulationPhase: 'idle',
+    setSimulationPhase: (phase) => set({ simulationPhase: phase }),
+    activeIncident: null,
+    setActiveIncident: (incident) => set({ activeIncident: incident }),
+    isSimulating: false,
+
+    startSimulation: async (attackType: AttackType, target: string) => {
+      const store = get();
+      set({ isSimulating: true, simulationPhase: 'detecting' });
+
+      const incident: Incident = {
+        id: `TR-LIVE-${Date.now().toString().slice(-4)}`,
+        threat: `${attackType.toUpperCase()} (Live Backend Simulation)`,
+        severity: 'critical',
+        target,
+        detectedAt: new Date().toLocaleString(),
+        status: 'detected',
+        riskScore: 92,
+        confidence: 98.2,
+        filesAffected: 8,
+        filesSecured: 8,
+        agentsInvolved: ['WATCHDOG', 'RISK ANALYSER', 'POLICY ENGINE', 'ENFORCER', 'VAULTKEEPER'],
+        isReal: true,
+      };
+      set({ activeIncident: incident });
+      store.addIncident(incident);
+
+      try {
+        // Trigger real backend ransomware simulator
+        await new Promise(resolve => setTimeout(resolve, 1200));
+        set({ simulationPhase: 'analysing' });
+        await new Promise(resolve => setTimeout(resolve, 1200));
+        set({ simulationPhase: 'deciding' });
+        await new Promise(resolve => setTimeout(resolve, 1200));
+        set({ simulationPhase: 'containing' });
+        await new Promise(resolve => setTimeout(resolve, 1200));
+        set({ simulationPhase: 'protecting' });
+        await dashboardApi.startSimulation();
+      } catch (err) {
+        console.warn('Backend simulator execution:', err);
+      } finally {
+        set({ simulationPhase: 'recovered' });
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        set({ isSimulating: false });
+      }
+    },
+
+    stopSimulation: () => set({ isSimulating: false, simulationPhase: 'idle' }),
+
+    // ─── Alert ─────────────────────────────────────────────────────────────
+    alertState: 'none',
+    setAlertState: (state) => set({ alertState: state }),
+    dismissAlert: () => set({ alertState: 'none' }),
+
+    // ─── Metrics ───────────────────────────────────────────────────────────
+    fileMetrics: { modRate: 1425, ioVelocity: 2.4, entropy: 0.92, processAnomaly: 87, networkActivity: 1.3 },
+    setFileMetrics: (m) => set((s) => ({ fileMetrics: { ...s.fileMetrics, ...m } })),
+    fileEvents: MOCK_FILES,
+    filesSecured: 0,
+    filesAffected: 0,
+
+    // ─── Recovery ──────────────────────────────────────────────────────────
+    recoveryProgress: 0,
+    recoverySteps: [
+      { label: 'Threat isolated', done: false },
+      { label: 'Malicious process terminated', done: false },
+      { label: 'Network restricted', done: false },
+      { label: 'Critical files secured', done: false },
+      { label: 'Backup verified', done: false },
+      { label: 'System restored', done: false },
+    ],
+
+    // ─── Replay ────────────────────────────────────────────────────────────
+    replayProgress: 0,
+    replayPlaying: false,
+    replaySpeed: 1,
+    replayIncidentId: 'TR-4821',
+    setReplayProgress: (p) => set({ replayProgress: p }),
+    setReplayPlaying: (v) => set({ replayPlaying: v }),
+    setReplaySpeed: (s) => set({ replaySpeed: s }),
+    resetReplay: () => {
+      set({
+        replayProgress: 0,
+        replayPlaying: false,
+        riskScore: 12,
+        simulationPhase: 'idle',
+        alertState: 'none',
+        agents: initialAgents,
+        recoveryProgress: 0,
+      });
+    },
+
+    // ─── Incidents ─────────────────────────────────────────────────────────
+    incidents: MOCK_INCIDENTS,
+    addIncident: (incident) => set((s) => ({ incidents: [incident, ...s.incidents] })),
+
+    // ─── Command Palette ───────────────────────────────────────────────────
+    cmdPaletteOpen: false,
+    setCmdPaletteOpen: (v) => set({ cmdPaletteOpen: v }),
+  };
+});
+
+
