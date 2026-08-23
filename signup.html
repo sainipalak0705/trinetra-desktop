@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up — TRINETRA</title>
+  <meta name="description" content="Create your TRINETRA security account.">
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/auth.css">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body class="auth-page">
+
+<!-- Background -->
+<div class="auth-bg" aria-hidden="true">
+  <div class="auth-bg-grid"></div>
+  <div class="auth-bg-glow-left"></div>
+  <div class="auth-bg-glow-right"></div>
+</div>
+
+<!-- Nav -->
+<nav class="auth-nav" aria-label="Authentication navigation">
+  <a href="index.html" class="auth-nav-back" id="signup-back-btn">
+    ← Back to site
+  </a>
+  <a href="login.html" class="btn btn-ghost btn-sm" id="signup-login-link">
+    Already have an account →
+  </a>
+</nav>
+
+<!-- Toast -->
+<div id="toast-container" aria-live="polite"></div>
+
+<!-- Main -->
+<main class="auth-container" id="main-content">
+  <div class="auth-panel animate-fade-in">
+
+    <!-- Logo -->
+    <a href="index.html" class="auth-logo" aria-label="TRINETRA Home">
+      <div class="auth-logo-icon" aria-hidden="true">🛡</div>
+      <div>
+        <div class="auth-logo-name">TRINETRA</div>
+        <div style="font-size:10px;color:var(--white-500);letter-spacing:0.1em;font-family:var(--font-mono)">CYBER RESILIENCE</div>
+      </div>
+    </a>
+
+    <h1 class="auth-heading">Create account</h1>
+    <p class="auth-subheading">Start protecting your files in minutes</p>
+
+    <!-- Form Card -->
+    <div class="auth-card">
+
+      <!-- Error -->
+      <div class="auth-error" id="signup-error" role="alert" aria-live="assertive">
+        <span aria-hidden="true">⚠</span>
+        <span id="signup-error-text">An error occurred</span>
+      </div>
+
+      <form id="signup-form" novalidate>
+        <!-- Name -->
+        <div class="auth-form-group">
+          <label class="auth-label" for="signup-name">Full Name</label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon" aria-hidden="true">👤</span>
+            <input
+              type="text"
+              id="signup-name"
+              class="auth-input"
+              placeholder="Enter your full name"
+              autocomplete="name"
+              required
+            >
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="auth-form-group">
+          <label class="auth-label" for="signup-email">Email Address</label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon" aria-hidden="true">@</span>
+            <input
+              type="email"
+              id="signup-email"
+              class="auth-input"
+              placeholder="Enter your email address"
+              autocomplete="email"
+              required
+            >
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="auth-form-group">
+          <label class="auth-label" for="signup-password">Password</label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon" aria-hidden="true">🔑</span>
+            <input
+              type="password"
+              id="signup-password"
+              class="auth-input"
+              placeholder="Enter your password (min. 8 chars)"
+              autocomplete="new-password"
+              required
+              minlength="8"
+            >
+            <button type="button" class="auth-input-eye" id="toggle-signup-password" aria-label="Toggle password visibility">👁</button>
+          </div>
+          <!-- Strength meter -->
+          <div class="password-strength" id="pw-strength">
+            <div class="strength-bar">
+              <div class="strength-fill" id="strength-fill"></div>
+            </div>
+            <span class="strength-label" id="strength-label">Enter a password</span>
+          </div>
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="auth-form-group">
+          <label class="auth-label" for="signup-confirm">Confirm Password</label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon" aria-hidden="true">🔑</span>
+            <input
+              type="password"
+              id="signup-confirm"
+              class="auth-input"
+              placeholder="Confirm your password"
+              autocomplete="new-password"
+              required
+            >
+          </div>
+        </div>
+
+        <button type="submit" class="auth-submit" id="signup-submit-btn">
+          <span id="signup-btn-text">Create Account</span>
+          <span id="signup-btn-icon" aria-hidden="true">→</span>
+        </button>
+      </form>
+
+      <div class="auth-divider">or sign up with</div>
+
+      <div class="social-login-container" style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px;">
+        <div id="social-google-btn" style="width: 100%; display: flex; justify-content: center; min-height: 40px; margin-bottom: 2px;"></div>
+
+      </div>
+    </div>
+
+    <div class="auth-footer">
+      Already have an account? <a href="login.html" id="signup-goto-login">Sign in →</a>
+    </div>
+
+    <div class="auth-terms">
+      By creating an account you agree to our
+      <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+      Your data is encrypted and never shared.
+    </div>
+  </div>
+</main>
+
+<script src="js/auth.js"></script>
+<script>
+  // Redirect if already logged in
+  redirectIfAuthed();
+
+  const form        = document.getElementById('signup-form');
+  const nameInput   = document.getElementById('signup-name');
+  const emailInput  = document.getElementById('signup-email');
+  const passInput   = document.getElementById('signup-password');
+  const confInput   = document.getElementById('signup-confirm');
+  const errorBox    = document.getElementById('signup-error');
+  const errorText   = document.getElementById('signup-error-text');
+  const submitBtn   = document.getElementById('signup-submit-btn');
+  const btnText     = document.getElementById('signup-btn-text');
+  const togglePass  = document.getElementById('toggle-signup-password');
+  const pwStrength  = document.getElementById('pw-strength');
+  const strengthFill= document.getElementById('strength-fill');
+  const strengthLbl = document.getElementById('strength-label');
+
+  // Toggle password
+  togglePass.addEventListener('click', () => {
+    const isPass = passInput.type === 'password';
+    passInput.type = isPass ? 'text' : 'password';
+    togglePass.textContent = isPass ? '🙈' : '👁';
+  });
+
+  // Password strength
+  passInput.addEventListener('input', () => {
+    const val = passInput.value;
+    pwStrength.style.display = val ? 'block' : 'none';
+    const score = getStrengthScore(val);
+    const levels = [
+      { label: 'Too short',  color: '#e8192c', width: '15%' },
+      { label: 'Weak',       color: '#ff6b35', width: '30%' },
+      { label: 'Fair',       color: '#f5a623', width: '55%' },
+      { label: 'Good',       color: '#00d97e', width: '80%' },
+      { label: 'Strong',     color: '#00d97e', width: '100%' },
+    ];
+    const level = levels[Math.min(score, 4)];
+    strengthFill.style.width      = level.width;
+    strengthFill.style.background = level.color;
+    strengthLbl.textContent       = level.label;
+    strengthLbl.style.color       = level.color;
+  });
+
+  function getStrengthScore(pw) {
+    if (pw.length < 6) return 0;
+    let s = 0;
+    if (pw.length >= 8) s++;
+    if (/[A-Z]/.test(pw)) s++;
+    if (/[0-9]/.test(pw)) s++;
+    if (/[^A-Za-z0-9]/.test(pw)) s++;
+    return s;
+  }
+
+  function showError(msg) {
+    errorText.textContent = msg;
+    errorBox.classList.add('show');
+  }
+  function clearError() {
+    errorBox.classList.remove('show');
+    [nameInput,emailInput,passInput,confInput].forEach(i => i.classList.remove('error'));
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    clearError();
+
+    const name     = nameInput.value.trim();
+    const email    = emailInput.value.trim();
+    const password = passInput.value;
+    const confirm  = confInput.value;
+
+    if (!name || !email || !password || !confirm) {
+      showError('Please fill in all fields.');
+      return;
+    }
+    if (password.length < 8) {
+      showError('Password must be at least 8 characters.');
+      passInput.classList.add('error');
+      return;
+    }
+    if (password !== confirm) {
+      showError('Passwords do not match.');
+      confInput.classList.add('error');
+      return;
+    }
+
+    submitBtn.classList.add('loading');
+    btnText.textContent = 'Creating account…';
+
+    authSignup(name, email, password).then(result => {
+      if (result.ok) {
+        btnText.textContent = '✓ Account created!';
+        setTimeout(() => { window.location.href = 'dashboard.html'; }, 600);
+      } else {
+        submitBtn.classList.remove('loading');
+        btnText.textContent = 'Create Account';
+        showError(result.error || 'Failed to create account.');
+      }
+    }).catch(err => {
+      submitBtn.classList.remove('loading');
+      btnText.textContent = 'Create Account';
+      showError('Registration request failed.');
+    });
+  });
+
+  [nameInput, emailInput, passInput, confInput].forEach(i => i.addEventListener('input', clearError));
+
+
+
+  // Initialize Google Identity Services for Signup
+  function handleGoogleCredential(response) {
+    submitBtn.classList.add('loading');
+    btnText.textContent = 'Verifying Google Account…';
+    clearError();
+
+    authLoginWithGoogle(response.credential).then(result => {
+      if (result.ok) {
+        btnText.textContent = '✓ Success!';
+        setTimeout(() => { window.location.href = 'dashboard.html'; }, 600);
+      } else {
+        submitBtn.classList.remove('loading');
+        btnText.textContent = 'Create Account';
+        showError(result.error || 'Google authentication failed.');
+      }
+    }).catch(err => {
+      submitBtn.classList.remove('loading');
+      btnText.textContent = 'Create Account';
+      showError('Google authentication request failed.');
+    });
+  }
+
+  function initGoogleSignIn() {
+    if (typeof google !== 'undefined') {
+      google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleCredential
+      });
+      google.accounts.id.renderButton(
+        document.getElementById("social-google-btn"),
+        { theme: "filled_black", size: "large", width: "364", shape: "rectangular" }
+      );
+    } else {
+      setTimeout(initGoogleSignIn, 100);
+    }
+  }
+  initGoogleSignIn();
+
+  // Card Mouse Glow Follow
+  const authCard = document.querySelector('.auth-card');
+  if (authCard) {
+    authCard.addEventListener('mousemove', (e) => {
+      const rect = authCard.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      authCard.style.setProperty('--mouse-x', `${x}px`);
+      authCard.style.setProperty('--mouse-y', `${y}px`);
+    });
+  }
+</script>
+</body>
+</html>

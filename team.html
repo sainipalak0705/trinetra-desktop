@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TRINETRA — Meet The Builders</title>
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/landing.css">
+  <style>
+    /* Custom styles for dedicated team page */
+    .team-page {
+      padding: 80px 24px 40px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: var(--black-900);
+      position: relative;
+      overflow: hidden;
+    }
+    .team-header {
+      text-align: center;
+      max-width: 800px;
+      margin-bottom: 24px;
+      z-index: 1;
+    }
+    
+    /* Mentor Section Styles */
+    .mentor-section {
+      width: 100%;
+      max-width: 1000px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 32px;
+      z-index: 1;
+    }
+    .mentor-card {
+      background: 
+        radial-gradient(rgba(245, 166, 35, 0.05) 1px, transparent 1px),
+        linear-gradient(135deg, var(--black-600) 0%, var(--black-700) 100%) !important;
+      background-size: 16px 16px, auto !important;
+      border: 1px solid rgba(245, 166, 35, 0.2) !important;
+      border-radius: var(--radius-2xl);
+      padding: 20px 32px;
+      max-width: 580px;
+      width: 100%;
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease-out;
+      animation: pulse-mentor-border 2.5s infinite alternate;
+    }
+    .mentor-card:hover {
+      border-color: rgba(245, 166, 35, 0.45) !important;
+      transform: translateY(-4px);
+      box-shadow: 0 16px 48px rgba(245, 166, 35, 0.1) !important;
+    }
+    
+    /* Team Section Styles */
+    .dev-section {
+      width: 100%;
+      max-width: 1000px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 1;
+    }
+    .team-grid-dedicated {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      width: 100%;
+    }
+    @media (max-width: 768px) {
+      .team-grid-dedicated {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      .mentor-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px 16px;
+      }
+    }
+    
+    .team-card-dedicated {
+      background: 
+        radial-gradient(rgba(0, 200, 232, 0.05) 1px, transparent 1px),
+        linear-gradient(135deg, var(--black-600) 0%, var(--black-700) 100%) !important;
+      background-size: 16px 16px, auto !important;
+      border: var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: 16px 20px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      transition: all 0.3s ease-out;
+    }
+    .team-card-dedicated:hover {
+      transform: translateY(-4px);
+    }
+    
+    /* Color Themes for Cards */
+    .team-card-dedicated.theme-purple {
+      border-color: rgba(168, 85, 247, 0.25) !important;
+      animation: pulse-purple-border 2.2s infinite alternate;
+    }
+    .team-card-dedicated.theme-purple:hover {
+      border-color: rgba(168, 85, 247, 0.5) !important;
+      box-shadow: 0 12px 40px rgba(168, 85, 247, 0.08) !important;
+    }
+    .team-card-dedicated.theme-cyan {
+      border-color: rgba(0, 200, 232, 0.25) !important;
+      animation: pulse-cyan-border 2.2s infinite alternate;
+    }
+    .team-card-dedicated.theme-cyan:hover {
+      border-color: rgba(0, 200, 232, 0.5) !important;
+      box-shadow: 0 12px 40px rgba(0, 200, 232, 0.08) !important;
+    }
+    .team-card-dedicated.theme-pink {
+      border-color: rgba(236, 72, 153, 0.25) !important;
+      animation: pulse-pink-border 2.2s infinite alternate;
+    }
+    .team-card-dedicated.theme-pink:hover {
+      border-color: rgba(236, 72, 153, 0.5) !important;
+      box-shadow: 0 12px 40px rgba(236, 72, 153, 0.08) !important;
+    }
+    .team-card-dedicated.theme-red {
+      border-color: rgba(255, 40, 68, 0.25) !important;
+      animation: pulse-red-border 2.2s infinite alternate;
+    }
+    .team-card-dedicated.theme-red:hover {
+      border-color: rgba(255, 40, 68, 0.5) !important;
+      box-shadow: 0 12px 40px rgba(255, 40, 68, 0.08) !important;
+    }
+    .team-card-dedicated.theme-green {
+      border-color: rgba(0, 217, 126, 0.25) !important;
+      animation: pulse-green-border 2.2s infinite alternate;
+    }
+    .team-card-dedicated.theme-green:hover {
+      border-color: rgba(0, 217, 126, 0.5) !important;
+      box-shadow: 0 12px 40px rgba(0, 217, 126, 0.08) !important;
+    }
+    .team-card-dedicated.theme-orange {
+      border-color: rgba(245, 166, 35, 0.25) !important;
+      animation: pulse-orange-border 2.2s infinite alternate;
+    }
+    .team-card-dedicated.theme-orange:hover {
+      border-color: rgba(245, 166, 35, 0.5) !important;
+      box-shadow: 0 12px 40px rgba(245, 166, 35, 0.08) !important;
+    }
+
+    /* Glow tracing border variables */
+    .mentor-card::before, .team-card-dedicated::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1.5px;
+      background: radial-gradient(
+        220px circle at var(--mouse-x, 0) var(--mouse-y, 0),
+        rgba(0, 200, 232, 0.45),
+        rgba(255, 40, 68, 0.25) 50%,
+        transparent 100%
+      );
+      -webkit-mask: 
+        linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 5;
+    }
+    .mentor-card:hover::before, .team-card-dedicated:hover::before {
+      opacity: 1;
+    }
+    .mentor-card::after, .team-card-dedicated::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(
+        260px circle at var(--mouse-x, 0) var(--mouse-y, 0),
+        rgba(0, 200, 232, 0.06),
+        transparent 80%
+      );
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 1;
+    }
+    .mentor-card:hover::after, .team-card-dedicated:hover::after {
+      opacity: 1;
+    }
+    
+    /* Avatars Custom Styling */
+    .team-avatar-dedicated {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      flex-shrink: 0;
+      border: 1.5px dashed rgba(255, 255, 255, 0.15);
+      background: rgba(0, 0, 0, 0.4);
+    }
+    
+    /* High tech placeholder styles */
+    .avatar-placeholder-text {
+      font-size: 9px;
+      font-family: var(--font-mono);
+      color: var(--white-400);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .avatar-icon-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    /* Female Avatar Theme */
+    .avatar-female {
+      border-color: rgba(236, 72, 153, 0.4);
+      background: radial-gradient(circle, rgba(236, 72, 153, 0.1) 0%, transparent 70%);
+      box-shadow: 0 0 15px rgba(236, 72, 153, 0.05);
+    }
+    .avatar-female .avatar-icon-wrap {
+      color: rgba(236, 72, 153, 0.85);
+      filter: drop-shadow(0 0 8px rgba(236, 72, 153, 0.5));
+    }
+    .avatar-female .avatar-placeholder-text {
+      color: #f472b6;
+    }
+    
+    /* Male Avatar Theme */
+    .avatar-male {
+      border-color: rgba(0, 200, 232, 0.4);
+      background: radial-gradient(circle, rgba(0, 200, 232, 0.1) 0%, transparent 70%);
+      box-shadow: 0 0 15px rgba(0, 200, 232, 0.05);
+    }
+    .avatar-male .avatar-icon-wrap {
+      color: rgba(0, 200, 232, 0.85);
+      filter: drop-shadow(0 0 8px rgba(0, 200, 232, 0.5));
+    }
+    .avatar-male .avatar-placeholder-text {
+      color: #22d3ee;
+    }
+    
+    /* Mentor Avatar Theme */
+    .avatar-mentor {
+      border-color: rgba(245, 166, 35, 0.4);
+      background: radial-gradient(circle, rgba(245, 166, 35, 0.15) 0%, transparent 70%);
+      box-shadow: 0 0 20px rgba(245, 166, 35, 0.08);
+      width: 70px;
+      height: 70px;
+    }
+    .avatar-mentor .avatar-icon-wrap {
+      color: rgba(245, 166, 35, 0.9);
+      filter: drop-shadow(0 0 10px rgba(245, 166, 35, 0.5));
+    }
+    .avatar-mentor .avatar-placeholder-text {
+      color: #fbbf24;
+    }
+    
+    .team-info-dedicated {
+      flex: 1;
+    }
+    .team-name-dedicated {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .team-role-dedicated {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 12px;
+    }
+    
+    .team-card-dedicated.theme-purple .team-role-dedicated { color: #c084fc; }
+    .team-card-dedicated.theme-cyan .team-role-dedicated { color: #22d3ee; }
+    .team-card-dedicated.theme-pink .team-role-dedicated { color: #f472b6; }
+    .team-card-dedicated.theme-red .team-role-dedicated { color: #f87171; }
+    .team-card-dedicated.theme-green .team-role-dedicated { color: #4ade80; }
+    .team-card-dedicated.theme-orange .team-role-dedicated { color: #fbbf24; }
+    
+    .team-bio-dedicated {
+      font-size: 13px;
+      color: var(--white-500);
+      line-height: 1.5;
+    }
+    
+    @keyframes pulse-mentor-border {
+      0% { border-color: rgba(245, 166, 35, 0.2); box-shadow: 0 0 8px rgba(245, 166, 35, 0.05); }
+      100% { border-color: rgba(245, 166, 35, 0.55); box-shadow: 0 0 22px rgba(245, 166, 35, 0.18); }
+    }
+  </style>
+</head>
+<body>
+
+
+
+<!-- ── NAVIGATION ─────────────────────────────────────── -->
+<nav class="nav" id="main-nav" role="navigation" aria-label="Main navigation">
+  <a href="index.html" class="nav-logo" aria-label="TRINETRA Home">
+    <div class="nav-logo-icon" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        <path d="M8 11h8"/>
+        <path d="M12 7v8"/>
+      </svg>
+    </div>
+    <div>
+      <div class="nav-logo-name">TRINE<span>TRA</span></div>
+    </div>
+  </a>
+
+  <div class="nav-links" role="menubar">
+    <a href="index.html#overview"  class="nav-link" role="menuitem">Overview</a>
+    <a href="index.html#how-it-works" class="nav-link" role="menuitem">How It Works</a>
+    <a href="index.html#agents"    class="nav-link" role="menuitem">Agents</a>
+    <a href="index.html#features"  class="nav-link" role="menuitem">Features</a>
+    <a href="team.html"      class="nav-link active" role="menuitem">Team</a>
+    <a href="index.html#contact"   class="nav-link" role="menuitem">Contact</a>
+    <div class="nav-mobile-actions">
+      <a href="login.html" class="btn btn-ghost btn-sm">Login</a>
+      <a href="signup.html" class="btn btn-primary btn-sm">Sign Up</a>
+    </div>
+  </div>
+
+  <div class="nav-actions">
+    <button class="audio-toggle" id="audio-toggle-btn" title="Toggle Cyber Sound Effects" aria-label="Toggle Cyber Sound Effects">
+      <div class="audio-waves">
+        <div class="audio-wave"></div>
+        <div class="audio-wave"></div>
+        <div class="audio-wave"></div>
+      </div>
+    </button>
+    <a href="login.html" class="btn btn-ghost btn-sm" id="nav-login-btn">Login</a>
+    <a href="signup.html" class="btn btn-primary btn-sm" id="nav-signup-btn">Sign Up</a>
+  </div>
+
+  <button class="nav-mobile-toggle" id="nav-mobile-toggle" aria-label="Toggle menu">
+    <span class="bar"></span>
+    <span class="bar"></span>
+    <span class="bar"></span>
+  </button>
+</nav>
+
+<!-- Main Content -->
+<main class="team-page">
+  <div class="hero-grid" aria-hidden="true"></div>
+  
+  <div class="team-header">
+    <div class="section-label">The Builders</div>
+    <h1 class="font-display" style="font-size: 40px; color: var(--white); margin: 12px 0; letter-spacing: 0.05em; text-transform: uppercase;">Meet the Builders</h1>
+    <p class="section-desc" style="font-size: 15px; color: var(--white-600); line-height: 1.6;">
+      TRINETRA was built by a passionate team of cybersecurity engineers and researchers dedicated to making ransomware defense accessible to everyone.
+    </p>
+  </div>
+
+  <!-- Mentor Section -->
+  <section class="mentor-section">
+    <h2 class="font-display" style="font-size: 22px; color: var(--white); margin-bottom: 24px; letter-spacing: 0.08em; text-transform: uppercase;">Meet the Mentor</h2>
+    <div class="mentor-card">
+      <div class="team-avatar-dedicated avatar-mentor">
+        <span class="avatar-icon-wrap" aria-hidden="true">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+            <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/>
+          </svg>
+        </span>
+        <div class="avatar-placeholder-text">R.M.</div>
+      </div>
+      <div class="team-info-dedicated">
+        <h3 class="team-name-dedicated" style="color: #fbbf24;">Prof. Rachana Ma'am</h3>
+        <div class="team-role-dedicated" style="color: #fbbf24;">Project Advisor & Mentor</div>
+        <p class="team-bio-dedicated">Guides the research framework, architectural modeling, and technical alignment of the multi-agent ransomware defense pipeline.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Developer Team Section -->
+  <section class="dev-section">
+    <h2 class="font-display" style="font-size: 22px; color: var(--white); margin-bottom: 28px; letter-spacing: 0.08em; text-transform: uppercase;">Meet the Developer Team</h2>
+    <div class="team-grid-dedicated">
+      
+      <!-- Developer 1 (Girl) - Vanshika Negi -->
+      <div class="team-card-dedicated theme-purple">
+        <div class="team-avatar-dedicated avatar-female">
+          <span class="avatar-icon-wrap" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM12 12v8M9 16h6"/>
+            </svg>
+          </span>
+          <div class="avatar-placeholder-text">V.N.</div>
+        </div>
+        <div class="team-info-dedicated">
+          <h3 class="team-name-dedicated">Vanshika Negi</h3>
+          <div class="team-role-dedicated">Team Lead</div>
+          <p class="team-bio-dedicated">Coordinates team tasks, schedules research deadlines, and manages overall project planning and integrations.</p>
+        </div>
+      </div>
+
+      <!-- Developer 2 (Girl) - Priyanshi Saini -->
+      <div class="team-card-dedicated theme-cyan">
+        <div class="team-avatar-dedicated avatar-female">
+          <span class="avatar-icon-wrap" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM12 12v8M9 16h6"/>
+            </svg>
+          </span>
+          <div class="avatar-placeholder-text">P.S.</div>
+        </div>
+        <div class="team-info-dedicated">
+          <h3 class="team-name-dedicated">Priyanshi Saini</h3>
+          <div class="team-role-dedicated">Lead Architect</div>
+          <p class="team-bio-dedicated">Designed the multi-agent orchestration framework, process scheduler, and core pipeline synchronization layers.</p>
+        </div>
+      </div>
+
+      <!-- Developer 3 (Girl) - Palak Saini -->
+      <div class="team-card-dedicated theme-pink">
+        <div class="team-avatar-dedicated avatar-female">
+          <span class="avatar-icon-wrap" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM12 12v8M9 16h6"/>
+            </svg>
+          </span>
+          <div class="avatar-placeholder-text">P.S.</div>
+        </div>
+        <div class="team-info-dedicated">
+          <h3 class="team-name-dedicated">Palak Saini</h3>
+          <div class="team-role-dedicated">Security Engineer</div>
+          <p class="team-bio-dedicated">Built the Watchdog behavioral tracker, entropy-based scanning thresholds, and canary file trigger alerts.</p>
+        </div>
+      </div>
+
+      <!-- Developer 4 (Girl) - Priya Aggarwal -->
+      <div class="team-card-dedicated theme-orange">
+        <div class="team-avatar-dedicated avatar-female">
+          <span class="avatar-icon-wrap" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM12 12v8M9 16h6"/>
+            </svg>
+          </span>
+          <div class="avatar-placeholder-text">P.A.</div>
+        </div>
+        <div class="team-info-dedicated">
+          <h3 class="team-name-dedicated">Priya Aggarwal</h3>
+          <div class="team-role-dedicated">Backend Developer</div>
+          <p class="team-bio-dedicated">Configured SQLite authentication backend API handlers, threat log database tables, and rollback recovery commands.</p>
+        </div>
+      </div>
+
+      <!-- Developer 5 (Boy) - Prakhar Srivastava -->
+      <div class="team-card-dedicated theme-red">
+        <div class="team-avatar-dedicated avatar-male">
+          <span class="avatar-icon-wrap" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 14a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM14 4h6v6M14 10l6-6"/>
+            </svg>
+          </span>
+          <div class="avatar-placeholder-text">P.S.</div>
+        </div>
+        <div class="team-info-dedicated">
+          <h3 class="team-name-dedicated">Prakhar Srivastava</h3>
+          <div class="team-role-dedicated">Systems Engineer</div>
+          <p class="team-bio-dedicated">Optimized sub-second process containment triggers, API endpoints routing speed, and local socket listeners.</p>
+        </div>
+      </div>
+
+      <!-- Developer 6 (Boy) - Ansh Dhawan -->
+      <div class="team-card-dedicated theme-green">
+        <div class="team-avatar-dedicated avatar-male">
+          <span class="avatar-icon-wrap" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 14a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM14 4h6v6M14 10l6-6"/>
+            </svg>
+          </span>
+          <div class="avatar-placeholder-text">A.D.</div>
+        </div>
+        <div class="team-info-dedicated">
+          <h3 class="team-name-dedicated">Ansh Dhawan</h3>
+          <div class="team-role-dedicated">DevOps Engineer</div>
+          <p class="team-bio-dedicated">Configured testing Docker environment scripts, logging pipelines, static server routing setups, and assets build routines.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</main>
+
+<script>
+
+
+  // Sound Synth Interface
+  class CyberAudioSynth {
+    constructor() {
+      this.ctx = null;
+      this.muted = true;
+    }
+    init() {
+      if (this.ctx) return;
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    toggle() {
+      this.muted = !this.muted;
+      if (!this.muted) this.init();
+      return !this.muted;
+    }
+    playTone(freq, type, duration, vol) {
+      if (this.muted) return;
+      this.init();
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+      try {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+      } catch (e) {}
+    }
+  }
+
+  window.cyberAudio = new CyberAudioSynth();
+
+  // Retrieve setting
+  const savedAudio = localStorage.getItem('trinetra_audio_enabled') === 'true';
+  const audioToggle = document.getElementById('audio-toggle-btn');
+  if (savedAudio && audioToggle) {
+    window.cyberAudio.toggle();
+    audioToggle.classList.add('active');
+  }
+
+  if (audioToggle) {
+    audioToggle.onclick = () => {
+      const active = window.cyberAudio.toggle();
+      audioToggle.classList.toggle('active', active);
+      localStorage.setItem('trinetra_audio_enabled', active);
+    };
+  }
+
+  // Interactive mouse follow glow
+  const cards = document.querySelectorAll('.mentor-card, .team-card-dedicated');
+  cards.forEach(card => {
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      card.style.setProperty('--mouse-x', `${x}px`);
+      card.style.setProperty('--mouse-y', `${y}px`);
+    });
+    card.addEventListener('mouseenter', () => {
+      window.cyberAudio.playTone(900, 'sine', 0.05, 0.03);
+    });
+  });
+
+  // Mobile Hamburger Menu Toggle
+  const mobileToggle = document.getElementById('nav-mobile-toggle');
+  const navLinks = document.querySelector('.nav-links');
+  if (mobileToggle && navLinks) {
+    mobileToggle.addEventListener('click', () => {
+      mobileToggle.classList.toggle('active');
+      navLinks.classList.toggle('active');
+    });
+    
+    // Close menu when clicking a link
+    navLinks.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        mobileToggle.classList.remove('active');
+        navLinks.classList.remove('active');
+      });
+    });
+  }
+</script>
+</body>
+</html>

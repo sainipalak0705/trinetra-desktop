@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — TRINETRA</title>
+  <meta name="description" content="TRINETRA Security Dashboard — real-time ransomware defense monitoring and control.">
+  <!-- No indexing for authenticated page -->
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+
+
+
+<!-- Restore Modal -->
+<div class="modal-backdrop" id="restore-modal" role="dialog" aria-modal="true" aria-labelledby="restore-modal-title">
+  <div class="modal">
+    <h2 class="modal-title" id="restore-modal-title">Restore File</h2>
+    <div class="modal-body" id="restore-modal-body">Are you sure you want to restore this file?</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="restore-modal-cancel" onclick="closeRestoreModal()" aria-label="Cancel restore">Cancel</button>
+      <button class="btn btn-primary" id="restore-modal-confirm" aria-label="Confirm restore">✓ Restore</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="dash-toast-container" aria-live="polite"></div>
+
+<!-- Simulation overlay -->
+<div class="sim-overlay" id="sim-overlay" aria-live="polite" aria-label="Simulation progress">
+  <div class="sim-overlay-title">
+    <div class="sim-indicator" aria-hidden="true"></div>
+    TRINETRA THREAT MITIGATION ENGINE
+  </div>
+  <div class="sim-glitch-text" style="font-family: var(--font-mono); font-size: 22px; color: var(--red-bright); font-weight: bold; letter-spacing: 0.1em; text-align: center; text-transform: uppercase; animation: glitch 1s infinite; margin-bottom: 20px;">RANSOMWARE ATTACK SIMULATION</div>
+  <div class="sim-step-text" id="sim-step-text">Initializing containment protocols…</div>
+  <div class="sim-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="margin-bottom: 24px;">
+    <div class="sim-progress-fill" id="sim-progress-fill"></div>
+  </div>
+  <div class="sim-console" id="sim-console" style="width: 100%; max-width: 600px; height: 180px; background: rgba(5,5,7,0.92); border: 1px solid rgba(220, 26, 47, 0.35); border-radius: var(--radius-md); padding: 16px; font-family: var(--font-mono); font-size: 11px; color: var(--red-bright); overflow-y: auto; text-align: left; display: flex; flex-direction: column; gap: 6px; box-shadow: inset 0 0 15px rgba(0,0,0,0.95); box-sizing: border-box;">
+    <!-- Live logs scroll here -->
+  </div>
+</div>
+
+<!-- Dashboard Layout -->
+<div class="dashboard-layout">
+
+  <!-- ── SIDEBAR ───────────────────────────────────────── -->
+  <aside class="sidebar" role="navigation" aria-label="Dashboard navigation">
+    <div class="sidebar-header">
+      <div class="sidebar-logo" aria-label="TRINETRA">
+        <div class="sidebar-logo-icon" aria-hidden="true">🛡</div>
+        <div>
+          <div class="sidebar-logo-name">TRINETRA</div>
+          <div class="sidebar-logo-sub">Ransomware Defense</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav" aria-label="Main navigation">
+      <div class="nav-item active" data-section="home" role="menuitem" tabindex="0"
+           aria-label="Home" aria-current="page">
+        <span class="nav-item-icon" aria-hidden="true">🏠</span>
+        <span>Home</span>
+      </div>
+      <div class="nav-item" data-section="protection" role="menuitem" tabindex="0" aria-label="Protection">
+        <span class="nav-item-icon" aria-hidden="true">🛡</span>
+        <span>Protection</span>
+      </div>
+      <div class="nav-item" data-section="recovery" role="menuitem" tabindex="0" aria-label="Recovery">
+        <span class="nav-item-icon" aria-hidden="true">🔄</span>
+        <span>Recovery</span>
+      </div>
+      <div class="nav-item" data-section="incident" role="menuitem" tabindex="0" aria-label="Incident">
+        <span class="nav-item-icon" aria-hidden="true">⚠</span>
+        <span>Incident</span>
+        <span class="nav-item-badge" id="incident-nav-badge" style="display:none" aria-label="New incident">1</span>
+      </div>
+      <div class="nav-item" data-section="replay" role="menuitem" tabindex="0" aria-label="Attack Replay">
+        <span class="nav-item-icon" aria-hidden="true">▶</span>
+        <span>Replay</span>
+      </div>
+      <div class="nav-item" data-section="history" role="menuitem" tabindex="0" aria-label="History">
+        <span class="nav-item-icon" aria-hidden="true">📋</span>
+        <span>History</span>
+      </div>
+      <div class="nav-item" data-section="settings" role="menuitem" tabindex="0" aria-label="Settings">
+        <span class="nav-item-icon" aria-hidden="true">⚙</span>
+        <span>Settings</span>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-demo-badge">
+        <div class="sidebar-demo-dot" aria-hidden="true"></div>
+        <span>SIH Demonstration Mode</span>
+      </div>
+      <button class="btn-sim" id="run-sim-btn" aria-label="Run attack simulation">
+        <span aria-hidden="true">▶</span>
+        <span>Run attack simulation</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── MAIN CONTENT ──────────────────────────────────── -->
+  <main class="dashboard-main" id="dashboard-main">
+
+    <!-- Topbar -->
+    <header class="dash-topbar" role="banner">
+      <div>
+        <div class="dash-topbar-title" id="dash-section-title">Home</div>
+        <div class="dash-topbar-sub" id="dash-section-sub">Overview of your system protection status</div>
+      </div>
+      <div class="dash-topbar-right">
+        <!-- Audio toggle -->
+        <button class="audio-toggle" id="audio-toggle-btn" title="Toggle Cyber Sound Effects" aria-label="Toggle Cyber Sound Effects" style="margin-right: 4px;">
+          <div class="audio-waves">
+            <div class="audio-wave"></div>
+            <div class="audio-wave"></div>
+            <div class="audio-wave"></div>
+          </div>
+        </button>
+
+        <!-- Notification bell -->
+        <button class="dash-notif" aria-label="Notifications" id="notif-btn">
+          🔔
+          <div class="dash-notif-badge" aria-hidden="true"></div>
+        </button>
+
+        <!-- User menu -->
+        <div class="dash-user" id="user-menu" role="button" tabindex="0" aria-label="User menu">
+          <div class="dash-user-avatar" id="user-avatar" aria-hidden="true">D</div>
+          <div>
+            <div class="dash-user-name" id="user-name">Demo User</div>
+            <div class="dash-user-role" id="user-role">Administrator</div>
+          </div>
+        </div>
+
+        <!-- Logout -->
+        <button class="btn btn-ghost btn-sm" id="logout-btn" aria-label="Log out">
+          Sign out
+        </button>
+      </div>
+    </header>
+
+    <!-- ── HOME SECTION ─────────────────────────────── -->
+    <section class="dash-section active" id="section-home" aria-labelledby="home-heading">
+      <h1 class="sr-only" id="home-heading">Dashboard Home</h1>
+
+      <!-- Hero row: Status ring + Quick info -->
+      <div class="home-hero-row">
+        <!-- Protection status ring card -->
+        <div class="status-ring-card safe" id="status-card">
+          <div class="ring-wrap" aria-label="Protection status gauge">
+            <svg class="ring-svg" viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="ring-bg" cx="50" cy="50" r="45"/>
+              <circle class="ring-fill safe" id="ring-fill" cx="50" cy="50" r="45"
+                      style="stroke-dashoffset: 269;"/>
+            </svg>
+            <div class="ring-inner">
+              <span class="ring-icon" id="ring-icon" aria-hidden="true">🛡</span>
+              <span class="ring-label">Status</span>
+            </div>
+          </div>
+          <div class="status-info">
+            <h2 id="status-title">You're Protected</h2>
+            <p id="status-desc">Real-time protection is active. 128 folders · 1,204 versions.</p>
+            <div class="status-actions">
+              <button class="btn btn-primary btn-sm" id="home-protect-btn" aria-label="View protection details">
+                Protection Details
+              </button>
+              <button class="btn btn-ghost btn-sm" id="home-recovery-btn" aria-label="Open recovery panel">
+                Open Recovery
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Monitoring status -->
+        <div class="panel-card" id="monitoring-card">
+          <div class="panel-card-title">Monitoring</div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:13px;color:var(--white-700)">Real-time protection</span>
+              <span class="badge badge-green">● Active</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:13px;color:var(--white-700)">Canary files</span>
+              <span class="badge badge-green">● Watching</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:13px;color:var(--white-700)">Backup snapshots</span>
+              <span class="badge badge-cyan">● Running</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:13px;color:var(--white-700)">Agent coordination</span>
+              <span class="badge badge-green">● 6/6 Ready</span>
+            </div>
+          </div>
+          <div style="margin-top:16px;padding-top:16px;border-top:var(--border-subtle)">
+            <div style="font-size:11px;color:var(--white-400);font-family:var(--font-mono)">
+              Last scan: 2 minutes ago<br>
+              System uptime: 99.97%
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div class="home-stats-row">
+        <div class="stat-card">
+          <div class="stat-card-top">
+            <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--white-500)">Risk Score</div>
+            <div class="stat-icon red" aria-hidden="true">⚡</div>
+          </div>
+          <div class="stat-value" id="stat-risk-score">12</div>
+          <div class="stat-label">Current threat level — Safe</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top">
+            <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--white-500)">Protected Files</div>
+            <div class="stat-icon green" aria-hidden="true">🗄</div>
+          </div>
+          <div class="stat-value" id="stat-protected-files">1,204</div>
+          <div class="stat-label">Across 128 monitored folders</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top">
+            <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--white-500)">Recovery Points</div>
+            <div class="stat-icon cyan" aria-hidden="true">🔒</div>
+          </div>
+          <div class="stat-value" id="stat-versions">128</div>
+          <div class="stat-label">Trusted snapshots available</div>
+        </div>
+      </div>
+
+      <!-- Bottom row: Events + Quick actions -->
+      <div class="home-bottom-row">
+        <div class="panel-card">
+          <div class="panel-card-title">Recent Security Events</div>
+          <div id="event-log" role="log" aria-live="polite" aria-label="Security events">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-card-title">Quick Actions</div>
+          <div id="quick-actions" role="group" aria-label="Quick actions">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PROTECTION SECTION ────────────────────────── -->
+    <section class="dash-section" id="section-protection" aria-labelledby="protection-heading">
+      <h2 class="sr-only" id="protection-heading">Protection</h2>
+
+      <!-- Protection controls -->
+      <div class="protection-controls">
+        <div>
+          <div class="toggle-wrap">
+            <label class="toggle" for="rt-protection-toggle" aria-label="Real-time protection toggle">
+              <input type="checkbox" id="rt-protection-toggle" checked>
+              <span class="toggle-slider" aria-hidden="true"></span>
+            </label>
+            <div>
+              <div class="prot-control-label">Real-time protection</div>
+              <div class="prot-control-sub">Monitors all file and process activity</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="toggle-wrap">
+            <label class="toggle" for="canary-toggle" aria-label="Canary protection toggle">
+              <input type="checkbox" id="canary-toggle" checked>
+              <span class="toggle-slider" aria-hidden="true"></span>
+            </label>
+            <div>
+              <div class="prot-control-label">Canary protection</div>
+              <div class="prot-control-sub">Decoy files trigger instant alert</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-left:auto">
+          <span class="badge badge-green" style="font-size:12px;padding:6px 14px">
+            ● 6 / 6 Agents Active
+          </span>
+        </div>
+      </div>
+
+      <!-- Agents grid -->
+      <div class="agents-dash-grid" id="agents-grid" aria-label="Active security agents">
+        <!-- Populated by JS -->
+      </div>
+    </section>
+
+    <!-- ── RECOVERY SECTION ──────────────────────────── -->
+    <section class="dash-section" id="section-recovery" aria-labelledby="recovery-heading">
+      <h2 class="sr-only" id="recovery-heading">Recovery</h2>
+
+      <div class="recovery-layout">
+        <!-- File list -->
+        <div class="recovery-file-list">
+          <div class="recovery-file-list-header">Protected Files</div>
+          <div class="recovery-file-items" id="recovery-file-list" role="listbox" aria-label="Protected files">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Version panel -->
+        <div class="recovery-versions-panel">
+          <div class="recovery-versions-header">
+            <div>
+              <div class="recovery-versions-title">Trusted file versions and restore</div>
+              <div class="recovery-versions-file" id="recovery-file-title">budget.xlsx</div>
+            </div>
+            <span class="preview-badge">Preview: Safe</span>
+          </div>
+          <div class="recovery-versions-list" id="recovery-versions-list" aria-label="File versions">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Recovery status -->
+        <div class="recovery-status-panel" id="recovery-status-content">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ── INCIDENT SECTION ──────────────────────────── -->
+    <section class="dash-section" id="section-incident" aria-labelledby="incident-heading">
+      <h2 class="sr-only" id="incident-heading">Incident</h2>
+      <div id="incident-content">
+        <!-- Populated by JS -->
+      </div>
+    </section>
+
+    <!-- ── REPLAY SECTION ────────────────────────────── -->
+    <section class="dash-section" id="section-replay" aria-labelledby="replay-heading">
+      <h2 class="sr-only" id="replay-heading">Attack Replay</h2>
+      <!-- Replay UI is injected by TrinetraReplay class -->
+      <div style="display:flex;align-items:center;justify-content:center;height:400px;color:var(--white-500);flex-direction:column;gap:16px">
+        <div style="font-size:48px" aria-hidden="true">▶</div>
+        <div style="font-size:16px;font-weight:600">Run an attack simulation first</div>
+        <div style="font-size:13px">Click "Run Attack Simulation" in the sidebar to generate a replay</div>
+        <button class="btn btn-primary" id="replay-start-sim-btn" aria-label="Start attack simulation">
+          ▶ Start Simulation
+        </button>
+      </div>
+    </section>
+
+    <!-- ── HISTORY SECTION ───────────────────────────── -->
+    <section class="dash-section" id="section-history" aria-labelledby="history-heading">
+      <h2 class="sr-only" id="history-heading">Incident History</h2>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div>
+          <div style="font-size:16px;font-weight:700;color:var(--white)">Incident History</div>
+          <div style="font-size:12px;color:var(--white-500);margin-top:2px">All recorded security events</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="export-history-btn" aria-label="Export history">
+          ↓ Export Report
+        </button>
+      </div>
+
+      <div class="history-table-wrap">
+        <table class="history-table" aria-label="Incident history">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Incident</th>
+              <th>Severity</th>
+              <th>Risk Score</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="history-tbody">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── SETTINGS SECTION ──────────────────────────── -->
+    <section class="dash-section" id="section-settings" aria-labelledby="settings-heading">
+      <h2 class="sr-only" id="settings-heading">Settings</h2>
+
+      <div class="settings-grid">
+        <!-- Threat Notifications -->
+        <div class="settings-panel">
+          <div class="settings-panel-title">Threat Notifications</div>
+          <div class="settings-panel-sub">Configure how you receive security alerts</div>
+
+          <div class="settings-item">
+            <div>
+              <div class="settings-item-label">Threat notifications</div>
+              <div class="settings-item-sub">Alerts for all detected threats</div>
+            </div>
+            <label class="toggle" for="setting-threat-notif" aria-label="Threat notifications">
+              <input type="checkbox" id="setting-threat-notif">
+              <span class="toggle-slider" aria-hidden="true"></span>
+            </label>
+          </div>
+
+          <div class="settings-item">
+            <div>
+              <div class="settings-item-label">Email alerts</div>
+              <div class="settings-item-sub">Send alerts to registered email</div>
+            </div>
+            <label class="toggle" for="setting-email-alerts" aria-label="Email alerts">
+              <input type="checkbox" id="setting-email-alerts">
+              <span class="toggle-slider" aria-hidden="true"></span>
+            </label>
+          </div>
+
+          <div class="settings-item">
+            <div>
+              <div class="settings-item-label">SMS alerts</div>
+              <div class="settings-item-sub">Send SMS to registered phone</div>
+            </div>
+            <label class="toggle" for="setting-sms-alerts" aria-label="SMS alerts">
+              <input type="checkbox" id="setting-sms-alerts">
+              <span class="toggle-slider" aria-hidden="true"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Automatic Response -->
+        <div class="settings-panel">
+          <div class="settings-panel-title">Automatic Response</div>
+          <div class="settings-panel-sub">Configure automated threat response behavior</div>
+
+          <div class="settings-item">
+            <div>
+              <div class="settings-item-label">Automatic response</div>
+              <div class="settings-item-sub">Automatically contain detected threats</div>
+            </div>
+            <label class="toggle" for="setting-auto-response" aria-label="Automatic response">
+              <input type="checkbox" id="setting-auto-response">
+              <span class="toggle-slider" aria-hidden="true"></span>
+            </label>
+          </div>
+
+          <div class="settings-item">
+            <div>
+              <div class="settings-item-label">Response sensitivity</div>
+              <div class="settings-item-sub">When to trigger automatic containment</div>
+            </div>
+            <select class="settings-select" id="setting-sensitivity" aria-label="Response sensitivity">
+              <option value="low">Low (≥ 80)</option>
+              <option value="medium" selected>Medium (≥ 60)</option>
+              <option value="high">High (≥ 40)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Recovery Preferences -->
+        <div class="settings-panel">
+          <div class="settings-panel-title">Recovery Preferences</div>
+          <div class="settings-panel-sub">Configure file versioning and backup behavior</div>
+
+          <div class="settings-item">
+            <div>
+              <div class="settings-item-label">Backup frequency</div>
+              <div class="settings-item-sub">How often to snapshot protected files</div>
+            </div>
+            <select class="settings-select" id="setting-backup-freq" aria-label="Backup frequency">
+              <option value="realtime">Real-time</option>
+              <option value="5min">Every 5 minutes</option>
+              <option value="hourly">Hourly</option>
+              <option value="daily">Daily</option>
+            </select>
+          </div>
+
+          <div class="settings-item">
+            <div>
+              <div class="settings-item-label">Versions to keep</div>
+              <div class="settings-item-sub">Number of historic snapshots per file</div>
+            </div>
+            <select class="settings-select" id="setting-versions-keep" aria-label="Versions to keep">
+              <option value="5">5 versions</option>
+              <option value="10" selected>10 versions</option>
+              <option value="20">20 versions</option>
+              <option value="50">50 versions</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Trusted Backup -->
+        <div class="settings-panel">
+          <div class="settings-panel-title">Trusted Backup Settings</div>
+          <div class="settings-panel-sub">Configure where encrypted snapshots are stored</div>
+
+          <div class="settings-item">
+            <div>
+              <div class="settings-item-label">Backup location</div>
+              <div class="settings-item-sub" style="font-family:var(--font-mono)">C:\TRINETRA\vault</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="change-backup-path-btn" aria-label="Change backup location">
+              Change
+            </button>
+          </div>
+
+          <div class="settings-item">
+            <div>
+              <div class="settings-item-label">Encryption</div>
+              <div class="settings-item-sub">AES-256 with per-file keys</div>
+            </div>
+            <span class="badge badge-green">✓ Active</span>
+          </div>
+
+          <div class="settings-item">
+            <div>
+              <div class="settings-item-label">Integrity verification</div>
+              <div class="settings-item-sub">SHA-256 hash on every snapshot</div>
+            </div>
+            <span class="badge badge-green">✓ Active</span>
+          </div>
+
+          <div style="margin-top:20px">
+            <button class="btn btn-primary btn-sm" id="save-settings-btn" aria-label="Save all settings">
+              Save Settings
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main><!-- /dashboard-main -->
+</div><!-- /dashboard-layout -->
+
+<!-- Screen-reader only utility -->
+<style>
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+</style>
+
+<!-- Scripts -->
+<script src="js/auth.js"></script>
+<script src="js/mockData.js"></script>
+<script src="js/simulation.js"></script>
+<script src="js/replay.js"></script>
+<script src="js/dashboard.js"></script>
+
+<script>
+  // Wiring for replay section button (before dashboard.js runs)
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('replay-start-sim-btn')?.addEventListener('click', () => {
+      startSimulation();
+      navigateTo('home');
+    });
+
+    document.getElementById('save-settings-btn')?.addEventListener('click', () => {
+      showToast('Settings saved successfully!', 'success');
+    });
+
+    document.getElementById('change-backup-path-btn')?.addEventListener('click', () => {
+      showToast('Path selection requires desktop app', 'info');
+    });
+
+    document.getElementById('export-history-btn')?.addEventListener('click', () => {
+      showToast('Incident report exported!', 'success');
+    });
+
+    // Keyboard nav for sidebar
+    document.querySelectorAll('.nav-item[data-section]').forEach(item => {
+      item.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          item.click();
+        }
+      });
+    });
+  });
+</script>
+</body>
+</html>
