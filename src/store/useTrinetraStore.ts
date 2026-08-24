@@ -222,6 +222,10 @@ interface TrinetraState {
   checkAuth: () => Promise<void>;
   initDashboard: () => Promise<void>;
 
+  // Connection Status
+  connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error';
+  setConnectionStatus: (status: 'connecting' | 'connected' | 'disconnected' | 'error') => void;
+
   // Navigation
   activePage: string;
   setActivePage: (page: string) => void;
@@ -369,6 +373,7 @@ export const useTrinetraStore = create<TrinetraState>((set, get) => {
     initDashboard: async () => {
       if (!get().isAuthenticated) return;
 
+      set({ connectionStatus: 'connecting' });
       // 1. Connect authenticated WebSocket
       wsClient.connect();
       wsClient.subscribe((backendEvent) => {
@@ -407,6 +412,10 @@ export const useTrinetraStore = create<TrinetraState>((set, get) => {
       }
     },
 
+    // ─── Connection Status ──────────────────────────────────────────────────
+    connectionStatus: 'disconnected',
+    setConnectionStatus: (status) => set({ connectionStatus: status }),
+
     // ─── Navigation ────────────────────────────────────────────────────────
     activePage: 'command-center',
     setActivePage: (page) => set({ activePage: page }),
@@ -438,6 +447,13 @@ export const useTrinetraStore = create<TrinetraState>((set, get) => {
 
     handleBackendEvent: (rawEvent: BackendEvent) => {
       const store = get();
+      
+      // Handle custom connection status events from wsClient
+      if (rawEvent.type === 'connection_status') {
+        store.setConnectionStatus(rawEvent.status);
+        return;
+      }
+
       const timeStr = rawEvent.timestamp
         ? new Date(rawEvent.timestamp).toTimeString().slice(0, 8)
         : new Date().toTimeString().slice(0, 8);
@@ -460,19 +476,29 @@ export const useTrinetraStore = create<TrinetraState>((set, get) => {
         store.setAgentState('policyEngine', 'deciding');
         store.setAgentState('enforcer', 'containing');
         store.setAlertState('critical');
+        if (store.isSimulating) store.setSimulationPhase('containing');
       } else if (eventName === 'ENFORCER_ACTIVATED') {
         store.setAgentState('enforcer', 'containing');
         store.setAgentActivity('enforcer', `Containing threat on PID ${rawEvent.pid || 'N/A'}`);
+        if (store.isSimulating) store.setSimulationPhase('containing');
       } else if (eventName === 'VAULTKEEPER_NOTIFIED') {
         store.setAgentState('vaultKeeper', 'protecting');
         store.setAgentActivity('vaultKeeper', 'Securing recovery snapshots');
+        if (store.isSimulating) store.setSimulationPhase('protecting');
       } else if (eventName === 'FILES_UNLOCKED') {
         store.setAgentState('enforcer', 'active');
         store.setAlertState('none');
+        if (store.isSimulating) store.setSimulationPhase('recovered');
       } else if (eventName === 'SAFE') {
         store.setAgentState('watchdog', 'monitoring');
         store.setAgentState('riskAnalyser', 'active');
         store.setAlertState('none');
+        store.setSimulationPhase('idle');
+        set({ isSimulating: false });
+      } else if (eventName === 'HIGH_RISK') {
+        if (store.isSimulating) store.setSimulationPhase('analysing');
+      } else if (eventName === 'SUSPICIOUS') {
+        if (store.isSimulating) store.setSimulationPhase('detecting');
       }
 
       // Add to event stream
@@ -532,21 +558,11 @@ export const useTrinetraStore = create<TrinetraState>((set, get) => {
 
       try {
         // Trigger real backend ransomware simulator
-        await new Promise(resolve => setTimeout(resolve, 1200));
-        set({ simulationPhase: 'analysing' });
-        await new Promise(resolve => setTimeout(resolve, 1200));
-        set({ simulationPhase: 'deciding' });
-        await new Promise(resolve => setTimeout(resolve, 1200));
-        set({ simulationPhase: 'containing' });
-        await new Promise(resolve => setTimeout(resolve, 1200));
-        set({ simulationPhase: 'protecting' });
+        // System state will update based on backend WebSocket events
         await dashboardApi.startSimulation();
       } catch (err) {
         console.warn('Backend simulator execution:', err);
-      } finally {
-        set({ simulationPhase: 'recovered' });
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        set({ isSimulating: false });
+        set({ isSimulating: false, simulationPhase: 'idle' });
       }
     },
 

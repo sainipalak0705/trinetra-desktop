@@ -53,6 +53,7 @@ class WebSocketClient {
           if (data.type === 'auth_success') {
             this.isAuthenticated = true;
             this.reconnectDelay = 1000;
+            this.notifyListeners({ type: 'connection_status', status: 'connected' });
             return;
           }
 
@@ -60,17 +61,12 @@ class WebSocketClient {
             console.error('[WebSocket] Authentication error:', data.message);
             this.isAuthenticated = false;
             this.disconnect();
+            this.notifyListeners({ type: 'connection_status', status: 'disconnected' });
             return;
           }
 
           // Disseminate live backend event payload to all listeners
-          this.listeners.forEach((listener) => {
-            try {
-              listener(data);
-            } catch (err) {
-              console.error('[WebSocket] Listener error:', err);
-            }
-          });
+          this.notifyListeners(data);
         } catch (err) {
           console.error('[WebSocket] Failed parsing incoming payload:', err);
         }
@@ -79,6 +75,7 @@ class WebSocketClient {
       this.socket.onclose = () => {
         this.isAuthenticated = false;
         this.socket = null;
+        this.notifyListeners({ type: 'connection_status', status: 'disconnected' });
         if (!this.isExplicitlyClosed) {
           this.scheduleReconnect();
         }
@@ -86,11 +83,24 @@ class WebSocketClient {
 
       this.socket.onerror = (error) => {
         console.warn('[WebSocket] Connection error:', error);
+        this.notifyListeners({ type: 'connection_status', status: 'error' });
       };
+
+
     } catch (err) {
       console.error('[WebSocket] Exception during connection setup:', err);
       this.scheduleReconnect();
     }
+  }
+
+  private notifyListeners(data: any): void {
+    this.listeners.forEach((listener) => {
+      try {
+        listener(data);
+      } catch (err) {
+        console.error('[WebSocket] Listener error:', err);
+      }
+    });
   }
 
   private scheduleReconnect(): void {

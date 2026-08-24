@@ -3,6 +3,7 @@ import { useTrinetraStore } from '../store/useTrinetraStore';
 import { AgentNetworkMap } from '../components/shared/AgentNetworkMap';
 import { LiveRiskGraph, MiniSparkline } from '../components/shared/LiveRiskGraph';
 import { EventFeed } from '../components/shared/EventFeed';
+import { dashboardApi } from '../api/dashboardApi';
 
 // Generate idle mini chart data
 function genMini(base: number, noise = 10) {
@@ -174,9 +175,31 @@ export function CommandCenter() {
               <button className="btn-ghost" onClick={() => setActivePage('simulation-lab')} style={{ width: '100%', textAlign: 'center', padding: '5px 8px', fontSize: '9px' }}>
                 ⚗ SIMULATION
               </button>
-              <button className="btn-ghost" onClick={() => setActivePage('reports')} style={{ width: '100%', textAlign: 'center', padding: '5px 8px', fontSize: '9px' }}>
+              <button className="btn-ghost" onClick={() => setActivePage('reports')} style={{ width: '100%', textAlign: 'center', padding: '5px 8px', fontSize: '9px', marginBottom: '8px' }}>
                 ≡ REPORTS
               </button>
+
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '8px', marginTop: '4px' }}>
+                <button
+                  className="btn-secondary"
+                  onClick={async () => {
+                    await dashboardApi.clearDashboard();
+                  }}
+                  style={{ width: '100%', textAlign: 'center', padding: '5px 8px', fontSize: '9px', marginBottom: '6px', color: '#ff6600', borderColor: 'rgba(255,102,0,0.3)' }}
+                >
+                  CLEAR SYSTEM LOGS
+                </button>
+                <button
+                  className="btn-secondary"
+                  onClick={async () => {
+                    const store = useTrinetraStore.getState();
+                    await store.unlockAllFiles();
+                  }}
+                  style={{ width: '100%', textAlign: 'center', padding: '5px 8px', fontSize: '9px', color: '#00ff88', borderColor: 'rgba(0,255,136,0.3)' }}
+                >
+                  UNLOCK FILES
+                </button>
+              </div>
             </div>
           </div>
         </div>

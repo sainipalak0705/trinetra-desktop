@@ -22,6 +22,7 @@ export function TopBar() {
   const simulationPhase = useTrinetraStore((s) => s.simulationPhase);
   const user = useTrinetraStore((s) => s.user);
   const logout = useTrinetraStore((s) => s.logout);
+  const connectionStatus = useTrinetraStore((s) => s.connectionStatus);
 
   const activeAgentCount = Object.values(agents).filter(
     (a) => a.state !== 'idle'
@@ -130,17 +131,41 @@ export function TopBar() {
         </div>
       )}
 
-      {/* Time */}
+      {/* Connection Status & Time */}
       <div
         style={{
           fontFamily: 'JetBrains Mono, monospace',
           fontSize: '10px',
           color: '#3a3a5a',
           letterSpacing: '0.08em',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
         }}
         className="hide-mobile"
       >
-        {timeStr}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span
+            style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              background: connectionStatus === 'connected' ? '#00ff88' : connectionStatus === 'connecting' ? '#ffaa00' : '#ff0040',
+              boxShadow: connectionStatus === 'connected' ? '0 0 6px rgba(0,255,136,0.6)' : connectionStatus === 'connecting' ? '0 0 6px rgba(255,170,0,0.6)' : '0 0 6px rgba(255,0,64,0.6)',
+              display: 'inline-block',
+              animation: connectionStatus === 'connecting' ? 'blink 1s step-end infinite' : 'none',
+            }}
+          />
+          <span style={{ 
+            color: connectionStatus === 'connected' ? '#00ff88' : connectionStatus === 'connecting' ? '#ffaa00' : '#ff0040',
+            textTransform: 'uppercase',
+            fontWeight: 600,
+          }}>
+            {connectionStatus}
+          </span>
+        </div>
+        <span>|</span>
+        <span>{timeStr}</span>
       </div>
 
       {/* Ctrl+K */}
