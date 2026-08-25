@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTrinetraStore, AttackType } from '../store/useTrinetraStore';
+import { dashboardApi } from '../api/dashboardApi';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ATTACK_TYPES: { id: AttackType; label: string; icon: string; desc: string; severity: string; color: string }[] = [
@@ -41,14 +42,17 @@ export function SimulationLab() {
 
   const selectedAttackInfo = ATTACK_TYPES.find((a) => a.id === selectedAttack)!;
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (isSimulating) return;
     setIsStarting(true);
-    setTimeout(() => {
-      startSimulation(selectedAttack, target);
+    try {
+      await dashboardApi.startSimulation();
       setStarted(true);
+    } catch (err) {
+      console.error('Failed to start simulation:', err);
+    } finally {
       setIsStarting(false);
-    }, 1500);
+    }
   };
 
   return (
